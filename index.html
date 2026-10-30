@@ -42,6 +42,12 @@ button.mv{display:block;margin:0 auto;padding:0 6px;font-size:10px;line-height:1
 .tx{width:190px;min-height:44px;resize:both;text-align:left;vertical-align:middle;overflow:hidden}
 button.danger{background:#7a1f16;border-color:#e0584a}
 dialog{background:var(--panel);color:var(--ink);border:2px solid var(--gold);border-radius:10px;max-width:560px;width:95%}dialog::backdrop{background:#000b}.dform{display:grid;gap:8px}.dform h2{margin:0}.compact .optional{display:none}.largeText{font-size:18px}.light{--bg:#eee8dc;--panel:#fffaf0;--ink:#241d15;--mut:#655746;--line:#c7b89e}.preset{margin:3px}
+.feat{display:none}
+.feat.on{display:inline-block}
+.chips{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-bottom:4px;max-width:220px}
+.chip{background:#4a3e30;border:1px solid var(--gold);border-radius:10px;padding:1px 8px;font-size:12px;white-space:nowrap;cursor:pointer}
+.chip b{margin-left:6px;color:#ff6b6b;cursor:pointer}
+.bloodied{color:#ff6b6b;font-size:11px}
 #hist{max-height:220px;overflow:auto;font-size:13px;color:var(--mut)}#hist div{border-top:1px solid var(--line);padding:3px 0}
 
 nav{margin-left:auto}.tab.on{background:var(--gold);color:#000}
@@ -66,13 +72,41 @@ nav{margin-left:auto}.tab.on{background:var(--gold);color:#000}
 <label><button onclick="document.getElementById('imp').click()">Import</button><input id="imp" type="file" accept=".json" hidden onchange="importData(this)"></label>
 <button onclick="if(confirm('Remove ALL players?')){snapshot();players=[];cur=0;save();render()}">Clear</button>
 <button onclick="rollInitiative()">🎲 Roll for Player Order</button>
+<button onclick="featureDialog()">Feature toggles</button>
 <button class="danger" onclick="resetApp()">Reset App</button>
-<button onclick="helpOpen(true)">❓ How to Use</button><button onclick="campaignDialog()">Campaign</button><button onclick="undo()">↶ Undo</button><button onclick="window.print()">🖨 Print</button>
+<button onclick="helpOpen(true)">❓ How to Use</button><button onclick="campaignDialog()">Campaign</button><button onclick="undo()">↶ Undo</button><button class="feat f-share" onclick="openShareDialog()">Share</button><button onclick="window.print()">🖨 Print</button>
 <nav><button id="t1" class="tab on" onclick="tab(1)">Table</button><button id="t2" class="tab" onclick="tab(2)">📖 DM Guide</button></nav></header>
-<dialog id="monsterDialog"><form method="dialog" class="dform"><h2>Add Monster / NPC</h2><input id="monName" placeholder="Name or SRD monster search"><button type="button" onclick="searchMonsters()">Search SRD</button><select id="monResults" size="5"></select><div class="row"><label>HP <input id="monHP" type="number" value="10"></label><label>AC <input id="monAC" type="number" value="10"></label><label>Init <input id="monInit" type="number" value="0"></label></div><button type="button" onclick="addCustomMonster()">Add custom NPC</button><button type="button" onclick="addChosenMonster()">Add selected SRD monster</button><button value="cancel">Close</button></form></dialog>
+<dialog id="monsterDialog"><form method="dialog" class="dform"><h2>Add Monster / NPC</h2><input id="monName" placeholder="Name or SRD monster search"><button type="button" onclick="searchMonsters()">Search SRD</button><select id="monResults" size="5"></select><div class="row"><label>HP <input id="monHP" type="number" value="10"></label><label>AC <input id="monAC" type="number" value="10"></label><label>Init <input id="monInit" type="number" value="0"></label><label>Qty <input id="monQty" type="number" value="1" min="1" style="width:60px"></label><label><input id="monConc" type="checkbox"> Conc</label></div><button type="button" onclick="addCustomMonster()">Add custom NPC</button><button type="button" onclick="addChosenMonster()">Add selected SRD monster</button><button value="cancel">Close</button></form></dialog>
 <dialog id="presetDialog"><form method="dialog" class="dform"><h2>Player Roll Presets</h2><label>Name <input id="preName"></label><label>Expression <input id="preExpr" placeholder="1d20+5 or 2d6+3"></label><button type="button" onclick="savePreset()">Save preset</button><div id="preList"></div><button value="cancel">Close</button></form></dialog>
+<dialog id="featureDialog"><form method="dialog" class="dform"><h2>Feature Toggles</h2><p>Enable or disable groups of optional features. Disabled buttons hide and their data is ignored.</p>
+<label><input type="checkbox" id="feat-dupe" onchange="saveFeatures()"> Duplicate monster / group initiative</label>
+<label><input type="checkbox" id="feat-save" onchange="saveFeatures()"> Party-wide saving throw roller</label>
+<label><input type="checkbox" id="feat-rest" onchange="saveFeatures()"> Short / long rest buttons</label>
+<label><input type="checkbox" id="feat-enc" onchange="saveFeatures()"> Encounter builder</label>
+<label><input type="checkbox" id="feat-gen" onchange="saveFeatures()"> Random generators</label>
+<label><input type="checkbox" id="feat-ref" onchange="saveFeatures()"> Quick reference panel</label>
+<label><input type="checkbox" id="feat-conc" onchange="saveFeatures()"> Concentration / condition timers</label>
+<label><input type="checkbox" id="feat-share" onchange="saveFeatures()"> Share / backup link</label>
+<label><input type="checkbox" id="feat-pview" onchange="saveFeatures()"> Player-facing view</label>
+<label><input type="checkbox" id="feat-hroll" onchange="saveFeatures()"> Hidden DM rolls</label>
+<button value="cancel">Close</button></form></dialog>
+<dialog id="dupeDialog"><form method="dialog" class="dform"><h2>Duplicate Monster</h2><p>Select a monster/NPC and add copies. HP is rolled separately if the monster has a hit dice formula.</p><select id="dupeTarget"></select><label>Copies <input id="dupeQty" type="number" value="2" min="1"></label><button type="button" onclick="duplicateMonster()">Add copies</button><button value="cancel">Close</button></form></dialog>
+<dialog id="restDialog"><form method="dialog" class="dform"><h2>Rest</h2><p>Apply a short or long rest.</p><button type="button" onclick="doRest('short')">Short Rest</button><button type="button" onclick="doRest('long')">Long Rest</button><label><input id="restMonsters" type="checkbox"> Include monsters</label><div id="restRes" style="margin:8px 0;color:var(--mut)"></div><button value="cancel">Close</button></form></dialog>
+<dialog id="encounterDialog"><form method="dialog" class="dform"><h2>Encounter Builder</h2><p>Build an encounter from SRD monsters and load it into the tracker. Difficulty estimate shows below.</p><div id="encList" style="min-height:40px"></div><div class="row"><input id="encQuery" placeholder="Search SRD monster"><button type="button" onclick="encSearch()">Search</button></div><select id="encChoices" size="5"></select><div class="row"><label>Qty <input id="encQty" type="number" value="1" min="1"></label><button type="button" onclick="encAdd()">Add to encounter</button></div><div id="encInfo" style="margin:8px 0;color:var(--mut)"></div><div class="row"><button type="button" onclick="loadEncounter()">Load into tracker</button><input id="encSaveName" placeholder="Encounter name"><button type="button" onclick="saveEncounter()">Save</button><select id="encSaved"></select><button type="button" onclick="deleteEncounter()">Delete</button></div><button value="cancel">Close</button></form></dialog>
+<dialog id="generatorDialog"><form method="dialog" class="dform"><h2>Random Generators</h2><div class="row"><button type="button" onclick="genName()">NPC name</button><button type="button" onclick="genTavern()">Tavern / place</button><button type="button" onclick="genWeather()">Weather</button><button type="button" onclick="genEncounter()">Random encounter</button><button type="button" onclick="genLoot()">Loot</button></div><div id="genRes" style="margin:8px 0;color:var(--gold);min-height:24px"></div><button value="cancel">Close</button></form></dialog>
+<dialog id="refDialog"><form method="dialog" class="dform"><h2>Quick Reference</h2><details><summary>Conditions</summary><ul><li><b>Blinded:</b> Auto-fail sight checks; attacks against have advantage; your attacks have disadvantage.</li><li><b>Charmed:</b> Cannot attack charmer; charmer has advantage on social checks.</li><li><b>Deafened:</b> Auto-fail hearing checks.</li><li><b>Exhaustion:</b> Levels: 1 disadvantage on checks, 2 speed halved, 3 disadvantage on attacks/saves, 4 HP max halved, 5 speed 0, 6 death.</li><li><b>Frightened:</b> Disadvantage on checks/attacks while source visible; cannot move toward source.</li><li><b>Grappled:</b> Speed 0.</li><li><b>Incapacitated:</b> Cannot take actions or reactions.</li><li><b>Invisible:</b> Attacks against have disadvantage; your attacks have advantage.</li><li><b>Paralyzed:</b> Incapacitated; auto-fail STR/DEX saves; attacks within 5 ft auto-crit.</li><li><b>Petrified:</b> Incapacitated; resistant to damage; poison/disease immune; auto-fail STR/DEX saves.</li><li><b>Poisoned:</b> Disadvantage on attacks and ability checks.</li><li><b>Prone:</b> Disadvantage on attacks; attacks within 5 ft have advantage, others disadvantage; stand costs half movement.</li><li><b>Restrained:</b> Speed 0; attacks and DEX saves disadvantaged; attacks against have advantage.</li><li><b>Stunned:</b> Incapacitated; auto-fail STR/DEX saves; attacks against have advantage.</li><li><b>Unconscious:</b> Incapacitated; prone; auto-fail STR/DEX saves; attacks within 5 ft auto-crit.</li></ul></details><details><summary>Cover</summary><p>Half cover: +2 AC and DEX saves. Three-quarters cover: +5. Total cover: cannot be targeted.</p></details><details><summary>Damage types</summary><p>Acid, bludgeoning, cold, fire, force, lightning, necrotic, piercing, poison, psychic, radiant, slashing, thunder.</p></details><details><summary>Difficulty thresholds (per day per PC)</summary><ul><li>Easy: 25 × lvl (1st: 25, 5th: 125, 10th: 250, 15th: 375, 20th: 550)</li><li>Medium: 50 × lvl</li><li>Hard: 75 × lvl</li><li>Deadly: 100 × lvl</li></ul></details><button value="cancel">Close</button></form></dialog>
+<dialog id="shareDialog"><form method="dialog" class="dform"><h2>Share / Backup Link</h2><p>This link contains your session state in the URL. Paste it in a new tab to restore.</p><textarea id="shareUrl" readonly style="width:100%;height:80px"></textarea><button type="button" onclick="copyShareUrl()">Copy</button><button value="cancel">Close</button></form></dialog>
+<dialog id="publicViewDialog"><form method="dialog" class="dform" style="max-width:700px"><h2>Player View</h2><p>Show this on a second screen to players. It hides monster HP and shows public turn order only.</p><div id="publicView" style="background:#1a1510;border:1px solid var(--line);border-radius:8px;padding:12px;min-height:120px"></div><button value="cancel">Close</button></form></dialog>
+<dialog id="saveDialog"><form method="dialog" class="dform"><h2>Party Saving Throw</h2><label>Ability <select id="saveAbility"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label><label>DC <input id="saveDC" type="number" value="15"></label><button type="button" onclick="partySave()">Roll saves</button><div id="saveRes" style="margin:8px 0"></div><button value="cancel">Close</button></form></dialog>
 <main id="main">
-<section><h2>Party &amp; Combat <span id="campaignLabel" style="font-size:13px;color:var(--mut)"></span><span id="roundLabel" style="float:right">Round 1</span></h2><div class="row"><button onclick="addMonsterDialog()">🐲 Add Monster / NPC</button><button onclick="toggleCompact()">Hide optional columns</button><button onclick="toggleTheme()">Theme / Text</button><label><input id="soundPref" type="checkbox" onchange="savePrefs()"> Sound</label><label><input id="autoBackup" type="checkbox" onchange="savePrefs()"> Auto-backup (10m)</label></div><details><summary>Session Notes &amp; Loot</summary><div class="row"><textarea id="sessionNotes" placeholder="Session notes" oninput="saveSession()" style="width:48%;min-height:70px"></textarea><textarea id="lootNotes" placeholder="Loot / gold log" oninput="saveSession()" style="width:48%;min-height:70px"></textarea></div></details><div class="tablewrap"><table id="sheet"></table></div></section>
+<section><h2>Party &amp; Combat <span id="campaignLabel" style="font-size:13px;color:var(--mut)"></span><span id="roundLabel" style="float:right">Round 1</span></h2><div class="row"><button onclick="addMonsterDialog()">🐲 Add Monster / NPC</button>
+<button class="feat f-dupe" onclick="duplicateMonsterDialog()">Duplicate</button>
+<button class="feat f-save" onclick="massSaveDialog()">Party Save</button>
+<button class="feat f-rest" onclick="openRestDialog()">Rest</button>
+<button class="feat f-enc" onclick="openEncounterDialog()">Encounter</button>
+<button class="feat f-gen" onclick="openGeneratorDialog()">Random</button>
+<button class="feat f-ref" onclick="openRefDialog()">Quick Ref</button>
+<button onclick="toggleCompact()">Hide optional columns</button><button onclick="toggleTheme()">Theme / Text</button><label><input id="soundPref" type="checkbox" onchange="savePrefs()"> Sound</label><label><input id="autoBackup" type="checkbox" onchange="savePrefs()"> Auto-backup (10m)</label></div><details><summary>Session Notes &amp; Loot</summary><div class="row"><textarea id="sessionNotes" placeholder="Session notes" oninput="saveSession()" style="width:48%;min-height:70px"></textarea><textarea id="lootNotes" placeholder="Loot / gold log" oninput="saveSession()" style="width:48%;min-height:70px"></textarea></div></details><div class="tablewrap"><table id="sheet"></table></div></section>
 <section><h2>Dice Roller</h2>
 <div class="row"><label>Number of dice <select id="count"></select></label>
 <label>Modifier <input id="modv" type="number" value="0" style="width:60px"></label></div>
@@ -83,13 +117,27 @@ nav{margin-left:auto}.tab.on{background:var(--gold);color:#000}
 <h2 style="margin-top:14px">History</h2><div id="hist"></div></section>
 </main>
 <div id="help" onclick="if(event.target===this)helpOpen(false)"><div id="helpbox">
-<button class="x" onclick="helpOpen(false)">✕ Close</button><h2>🐉 DM Toolkit — How to Use</h2><p>Party sheet, combat tracker, dice roller and SRD reference. Data saves in this browser.</p>
-<h3>Quick start</h3><ol><li>Add heroes and edit names, classes and stats.</li><li>Roll for Player Order, or move combatants with ▲/▼.</li><li>Add monsters/NPCs. On each turn, roll, update HP/resources, then End Turn.</li></ol>
-<h3>Header and session controls</h3><ul><li><b>Add Player</b> adds a hero. <b>Campaign</b> switches or creates named local campaign saves.</li><li><b>Export/Import</b> back up or restore party JSON. Optional timed auto-backup downloads a new JSON file every 10 minutes while open. <b>Clear</b> removes players. <b>Reset App</b> warns and confirms before clearing saved state.</li><li><b>Undo</b> reverses recent supported edits. <b>Print</b> opens the browser print dialog. <b>How to Use</b> opens this guide.</li><li><b>Session Notes &amp; Loot</b> expands editable campaign notes and loot/gold log. <b>Hide optional</b> compacts optional controls. <b>Theme/Text</b> toggles light appearance and larger type. Sound is an optional saved preference (audio playback is not yet implemented). <b>Auto-backup</b> downloads a JSON backup every 10 minutes while this page is open.</li></ul>
-<h3>Party &amp; Combat</h3><ul><li>Rows track name, class, level, AC, HP, speed, initiative, passive perception, six abilities, temp HP, death-save marks, conditions, resources and notes. Name/class are editable before rolling order.</li><li>Ability modifiers calculate automatically. Roll Check rolls d20 plus the selected ability; Roll Skill maps each standard skill to its usual ability. Use the condition quick-pick to append a standard condition, or edit the field directly. Resources and notes are editable text.</li><li>Temp HP is displayed separately and is consumed before HP when damage is applied. Death-save success/failure buttons count to three; minus buttons correct a mark.</li><li><b>Add Monster/NPC</b> searches the SRD online or adds a custom creature with HP, AC and initiative modifier. An SRD monster's <b>Add to Combat</b> button imports it.</li><li><b>Roll for Player Order</b> rolls d20 plus each Init modifier and places highest first; tied totals reroll. ▲/▼ manually rearrange. <b>End Turn</b> advances and increments the round on wrap.</li><li><b>Undo</b> stores a short local history of supported actions. Use <b>Campaign</b> to separate session parties.</li></ul>
-<h3>Dice, checks and presets</h3><ul><li>Roll 1–20 individual dice of d4, d6, d8, d10, d12, d20 or d%. Set All changes all selected dice. Add a modifier.</li><li>Each player's last dice configuration is saved on their roll and restored when selected. Edit it before rolling to change it.</li><li><b>Roll Presets</b> saves named expressions per player, e.g. 1d20+5. Choose Roll to repeat or Delete to remove.</li><li>Adv/Dis rolls two d20s, keeping higher/lower. Select an ability and use <b>Roll Check</b> for d20 + ability modifier.</li><li>Mouse wheel over numeric fields adjusts ±1; Shift adjusts ±10. History records rolls and turns.</li></ul>
-<h3>DM Guide</h3><ul><li>Browse SRD monsters, spells, classes, races, rules, equipment, magic items and more online. Search and monster challenge-rating filter are available.</li><li>Monster details include abilities, actions and traits, plus Roll HP, Roll initiative and Add to Combat.</li><li>Links to official player and DM books are provided; copyrighted book text is not reproduced.</li></ul>
-<h3>Saving &amp; limits</h3><ul><li>Changes save locally in the current browser. Export parties regularly for backup; clearing browser data may remove them.</li><li>Campaigns, round, history, order, per-player dice, presets, resources, session notes and loot notes are kept in local storage. Print uses your browser's print dialog.</li><li>Character import accepts this app's party JSON; other formats may need conversion.</li><li>Audio playback is not implemented yet. Auto-backup creates browser downloads every ten minutes while enabled and the app stays open.</ul></div></div>
+<button class="x" onclick="helpOpen(false)">✕ Close</button><h2>🐉 DM Toolkit — How to Use</h2><p>Party sheet, combat tracker, dice roller and SRD reference. Data saves locally.</p>
+<h3>Quick start</h3><ol><li>Add heroes and edit stats; add monsters from the SRD or custom NPCs.</li><li>Roll for Player Order or arrange manually.</li><li>On each turn: roll, update HP/resources, then End Turn.</li></ol>
+<h3>Feature toggles</h3><p>Click <b>Feature toggles</b> to enable groups of optional tools. Disabled buttons are hidden until turned on. Choices are saved.</p>
+<h3>Header controls</h3><ul><li><b>Add Player</b> · <b>Export/Import</b> · <b>Clear</b> · <b>Reset App</b> · <b>Undo</b> · <b>Print</b> · <b>How to Use</b> · Table/DM Guide tabs.</li>
+<li>Toggle buttons (when enabled): <b>Duplicate</b>, <b>Party Save</b>, <b>Rest</b>, <b>Encounter</b>, <b>Random</b>, <b>Quick Ref</b>, <b>Share</b>.</li></ul>
+<h3>Party &amp; Combat</h3><ul><li>Rows track name, class, level, AC, HP, speed, Init, PP, abilities, temp HP, death saves, concentration, conditions with optional timers, resources and notes.</li>
+<li><b>Quick damage/healing</b>: use −1 / +1 buttons or − / + for larger amounts. Temp HP is used first. Bloodied appears at half HP or below. Healing clears death saves.</li>
+<li><b>Concentration</b>: tick the Conc box. When the creature takes damage, a concentration save is rolled automatically (DC 10 or half damage, whichever is higher). Failure breaks it.</li>
+<li><b>Conditions</b>: free-text field plus timed condition chips. Type <code>Poisoned:3</code> in the Timer field to add Poisoned for 3 rounds; timers tick down at the start of each new round and are removed at 0.</li>
+<li><b>Duplicate</b>: select a monster and add copies with individually rolled HP.</li>
+<li><b>Roll for Player Order</b>: d20 + Init modifier, ties reroll. ▲/▼ rearrange. End Turn advances and counts rounds; current player is yellow, current monster/NPC is orange.</li></ul>
+<h3>Dice, checks, presets</h3><ul><li>1–20 dice of any standard type, modifier, Set all, Adv/Dis, ability checks, skill checks and per-player roll presets. Per-player dice setups restore on selection.</li></ul>
+<h3>Encounters and rest</h3><ul><li><b>Encounter</b>: search SRD monsters, set quantities, see difficulty estimate, save/load encounters. <b>Load into tracker</b> adds all monsters at once.</li>
+<li><b>Rest</b>: short rest tags resources as restored; long rest sets HP to max, clears death saves and removes temp HP.</li>
+<li><b>Party Save</b>: roll the selected ability save against a DC for every hero, showing pass/fail.</li>
+<li><b>Random</b>: name, tavern, weather, encounter hook and loot generators.</li>
+<li><b>Quick Ref</b>: conditions, cover, damage types and XP thresholds.</li>
+<li><b>Share</b>: creates a URL containing the whole session state; open it in another tab to restore.</li>
+<li><b>Player View</b> (from feature toggles): shows turn order and public HP on a second screen.</li>
+<li><b>Hidden Roll</b> (from feature toggles): DM-only die roll shown in an alert.</li></ul>
+<h3>Saving &amp; limits</h3><ul><li>Changes save locally. Export and optional auto-backup. Share links are long URLs; use them for your own backups, not public posting of large sessions.</li></ul></div></div>
 <div id="guide"><div class="gtop" id="cats"></div>
 <div class="refs" style="margin:0 0 12px">Content comes from the free D&amp;D 5e SRD (<a href="https://www.dnd5eapi.co" target="_blank">dnd5eapi.co</a>). The full books are copyrighted and can't be reproduced; official links:
 <a href="https://www.dndbeyond.com/sources/dnd/free-rules" target="_blank">Free Basic Rules</a> ·
@@ -119,7 +167,7 @@ function toggleTheme(){document.body.classList.toggle('light');document.body.cla
 function savePrefs(){localStorage.setItem('dm_prefs',JSON.stringify({light:document.body.classList.contains('light'),large:document.body.classList.contains('largeText'),sound:soundPref.checked,auto:autoBackup.checked}))}
 function addMonsterDialog(){monsterDialog.showModal()}
 async function searchMonsters(){try{const q=monName.value.toLowerCase(),d=await jget('/api/2014/monsters');monResults.innerHTML=d.results.filter(x=>x.name.toLowerCase().includes(q)).slice(0,30).map(x=>`<option value="${x.url}">${esc(x.name)}</option>`).join('')}catch{alert('SRD search needs internet.')}}
-function addCustomMonster(){snapshot();const name=monName.value.trim()||'NPC',hp=+monHP.value||1;players.push({name,cls:'Monster/NPC',lvl:1,ac:+monAC.value||10,hp,max:hp,spd:30,init:+monInit.value||0,pp:10,STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10,cond:'',notes:'',isMonster:true});save();render();if(monsterDialog.open)monsterDialog.close()}
+function addCustomMonster(){snapshot();const base=monName.value.trim()||'NPC',qty=+monQty.value||1;for(let n=1;n<=qty;n++){const name=base+(qty>1?' '+n:'');const hp=+monHP.value||1;players.push({name,cls:'Monster/NPC',lvl:1,ac:+monAC.value||10,hp,max:hp,spd:30,init:+monInit.value||0,pp:10,STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10,cond:'',notes:'',temp:0,ds:0,df:0,resources:'',conc:!!monConc.checked,conditions:[],isMonster:true})}save();render();if(monsterDialog.open)monsterDialog.close()}
 async function addChosenMonster(){try{const m=await jget(monResults.value),ac=m.armor_class[0]?.value||10,hp=m.hit_points;const p={name:m.name,cls:'Monster CR '+m.challenge_rating,lvl:1,ac,hp,max:hp,spd:30,init:Math.floor((m.dexterity-10)/2),pp:10,STR:m.strength,DEX:m.dexterity,CON:m.constitution,INT:m.intelligence,WIS:m.wisdom,CHA:m.charisma,cond:'',notes:m.hit_points_roll||'',temp:0,ds:0,df:0,resources:'',isMonster:true};snapshot();players.push(p);save();render();if(monsterDialog.open)monsterDialog.close()}catch{alert('Select a monster first.')}}
 function presetOpen(){const p=players[cur];preList.innerHTML=(p?.presets||[]).map((x,i)=>`<div>${esc(x.name)} <code>${esc(x.expr)}</code> <button onclick="usePreset(${i})">Roll</button> <button onclick="removePreset(${i})">Delete</button></div>`).join('');presetDialog.showModal()}
 function savePreset(){const p=players[cur];if(!p)return alert('Add/select a player first.');const name=preName.value.trim(),expr=preExpr.value.trim();if(!name||!/^\d+d(4|6|8|10|12|20|100)([+-]\d+)?$/i.test(expr))return alert('Enter a name and expression like 1d20+5.');p.presets=p.presets||[];p.presets.push({name,expr});snapshot();save();presetOpen()}
@@ -129,14 +177,84 @@ function skillRoll(){if(!players[cur])return alert('Add a player first.');const 
 function addCondition(){const v=condPick.value;if(!v||!players[cur])return;const p=players[cur];snapshot();p.cond=p.cond?(p.cond+', '+v):v;condPick.value='';save();render()}
 function abilityRoll(){if(!players[cur])return alert('Add a player first.');const a=checkAbility.value,p=players[cur],d=rnd(20),m=Math.floor((+p[a]-10)/2);snapshot();document.getElementById('total').innerHTML=`${a} check — ${esc(p.name)}: <b>${d+m}</b> (d20 ${d}, ${m>=0?'+':''}${m})`;logLine(`${p.name}: ${a} check ${d} ${m>=0?'+':''}${m} = ${d+m}`)}
 async function addGuideMonster(url){try{const m=await jget(url),hp=m.hit_points;const p={name:m.name,cls:'Monster CR '+m.challenge_rating,lvl:1,ac:m.armor_class[0]?.value||10,hp,max:hp,spd:30,init:Math.floor((m.dexterity-10)/2),pp:10,STR:m.strength,DEX:m.dexterity,CON:m.constitution,INT:m.intelligence,WIS:m.wisdom,CHA:m.charisma,cond:'',notes:m.hit_points_roll||'',temp:0,ds:0,df:0,resources:'',isMonster:true};snapshot();players.push(p);save();render();tab(1)}catch{alert('Could not add monster.')}}
-function addPlayer(){snapshot();players.push({name:'New Hero',cls:'',lvl:1,ac:10,hp:10,max:10,spd:30,init:0,pp:10,STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10,cond:'',notes:'',temp:0,ds:0,df:0,resources:''});save();render()}
+// ---- Feature toggles ----
+const FEATURES={dupe:false,save:false,rest:false,enc:false,gen:false,ref:false,conc:false,share:false,pview:false,hroll:false};
+let featureState=JSON.parse(localStorage.getItem('dm_features')||'null')||{};
+function applyFeatures(){
+ Object.keys(FEATURES).forEach(k=>{
+  const on=!!featureState[k];document.querySelectorAll('.f-'+k).forEach(el=>el.classList.toggle('on',on));
+  const cb=document.getElementById('feat-'+k);if(cb)cb.checked=on;
+ });
+}
+function saveFeatures(){
+  Object.keys(FEATURES).forEach(k=>{const cb=document.getElementById('feat-'+k);featureState[k]=cb?cb.checked:false;});
+  localStorage.setItem('dm_features',JSON.stringify(featureState));applyFeatures();
+}
+function featureDialog(){document.getElementById('featureDialog').showModal()}
+
+// ---- Group 1: monsters quick HP, bloodied, concentration, condition timers, duplicate ----
+function quickDamage(i,d){snapshot();const p=players[i];if(d<0){let dmg=-d,used=Math.min(p.temp||0,dmg);p.temp=(p.temp||0)-used;d+=used}p.hp=Math.max(0,Math.min(p.max,p.hp+d));p.isBloodied=p.hp>0&&p.hp<=p.max/2;if(p.hp>0){p.ds=0;p.df=0}if(p.conc&&d<0&&p.hp>0){const dc=Math.max(10,Math.floor(-d/2));const c=rnd(20)+Math.floor((p.CON-10)/2);const ok=c>=dc;logLine(`${p.name}: Conc save DC ${dc} → ${c} ${ok?'PASS':'FAIL'}`);if(!ok){p.conc=false;logLine(`${p.name}: concentration broken`)}}save();render()}
+function toggleConc(i){snapshot();players[i].conc=!players[i].conc;save();render()}
+function setCondText(i,v){snapshot();players[i].cond=v;save()}
+function removeCondition(i,j){snapshot();players[i].conditions.splice(j,1);save();render()}
+function editCondition(i,j){const c=players[i].conditions[j];const nv=prompt('Condition name',c.name);if(nv===null)return;const rv=prompt('Rounds (blank for none)',c.rounds||'');if(rv===null)return;c.name=nv.trim();c.rounds=rv.trim()?+rv:undefined;snapshot();save();render()}
+function addTimedConditionPrompt(i,text){if(!text)return;const [name,rs]=text.split(':');const rounds=rs?+rs:undefined;if(!name.trim())return;players[i].conditions.push({name:name.trim(),rounds});snapshot();save();render()}
+function decrementConditionTimers(){let changed=false;players.forEach(p=>{if(p.conditions&&p.conditions.length){p.conditions.forEach(c=>{if(c.rounds){c.rounds--;if(c.rounds<=0)c.expired=true;changed=true}});p.conditions=p.conditions.filter(c=>!c.expired)}});return changed}
+function duplicateMonsterDialog(){const opts=players.map((p,i)=>p.isMonster?`<option value="${i}">${p.name}</option>`:'').join('');dupeTarget.innerHTML=opts||'<option>No monsters</option>';dupeDialog.showModal()}
+function duplicateMonster(){const idx=+dupeTarget.value,qty=+dupeQty.value||1;if(idx<0||idx>=players.length||!players[idx].isMonster)return;const src=players[idx];snapshot();for(let n=1;n<=qty;n++){const hp=src.monsterData&&src.monsterData.hit_points_roll?parseRoll(src.monsterData.hit_points_roll)||src.max:src.max;const name=src.name.replace(/\s+\d+$/,'')+' '+(n+1);players.push({...src,name,hp,max:hp,temp:0,ds:0,df:0,conc:false,conditions:[],ir:null,irRoll:null});}save();render();dupeDialog.close()}
+function parseRoll(expr){const m=String(expr).match(/^(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?$/);if(!m)return null;let t=0;for(let i=0;i<+m[1];i++)t+=rnd(+m[2]);return t+(m[3]?(m[3]==='-'?-1:1)*+m[4]:0)}
+
+// ---- Group 2: rest buttons ----
+function openRestDialog(){document.getElementById('restDialog').showModal()}
+function doRest(type){const incl=restMonsters.checked;let affected=[];players.forEach(p=>{if(!p.isMonster||incl){if(type==='long'){p.hp=p.max;p.ds=0;p.df=0;p.temp=0;p.conc=false;affected.push(p.name);}else{p.resources='rested';affected.push(p.name);}}});restRes.textContent=(type==='long'?'Long rest':'Short rest')+' applied to: '+(affected.join(', ')||'no one');snapshot();save();render()}
+
+// ---- Group 3: party saving throw ----
+function massSaveDialog(){saveDialog.showModal()}
+function partySave(){const a=saveAbility.value,dc=+saveDC.value||10;const results=players.filter(p=>!p.isMonster).map(p=>{const bonus=Math.floor((+p[a]-10)/2);const d=rnd(20);const tot=d+bonus;const pass=tot>=dc;return `<span style="color:${pass?'var(--ok)':'var(--acc)'}">${p.name}: ${tot} ${pass?'PASS':'FAIL'}</span>`}).join('<br>');saveRes.innerHTML='DC '+dc+' '+a+'<br>'+results;}
+
+// ---- Group 4: random generators ----
+function openGeneratorDialog(){document.getElementById('generatorDialog').showModal()}
+const NAMES={first:['Aldric','Brin','Cora','Darian','Eldeth','Fenn','Greta','Hiro','Ivy','Jorah','Kara','Loras','Mira','Niles','Oona','Perrin','Quinn','Rook','Sable','Thorne','Ulric','Vex','Willow','Xander','Yara','Zev'],last:['Ashford','Blackwood','Copperpot','Duskwind','Eagleheart','Frost','Goldmane','Holloway','Ironside','Jadewalker','Kettleblack','Lightfoot','Morrigan','Nettle','Oakenshield','Pike','Quickstep','Riven','Storm','Tumblewick','Underhill','Vane','Whitmore','Xal','Yarrow','Zook'],places:['The Drunken Dragon','The Rusty Anchor','The Gilded Goose','The Last Drop','The Singing Siren','The Wandering Wizard','The Crooked Candle','The Prancing Pony (forgive us)','The Black Boot','The Silver Stag'],weather:['Clear and calm','Light rain','Heavy rain','Thunderstorm','Foggy','Overcast','Light snow','Blizzard','Hot and humid','Cold wind','Gusty and dry']}
+function genName(){genRes.textContent=NAMES.first[rnd(NAMES.first.length)-1]+' '+NAMES.last[rnd(NAMES.last.length)-1]}
+function genTavern(){genRes.textContent=NAMES.places[rnd(NAMES.places.length)-1]}
+function genWeather(){genRes.textContent=NAMES.weather[rnd(NAMES.weather.length)-1]}
+function genEncounter(){const terrains=['forest','road','cave','ruins','hills'];const t=terrains[rnd(terrains.length)-1];genRes.textContent=`Random ${t} encounter: roll on your table or improvise!`}
+function genLoot(){const coins=(rnd(10)+rnd(10))*10;genRes.textContent=`${coins} cp scattered in an old pouch, plus a trinket.`}
+
+// ---- Group 5: encounter builder ----
+let encounter=[],savedEncounters=JSON.parse(localStorage.getItem('dm_encounters')||'{}');
+function openEncounterDialog(){document.getElementById('encounterDialog').showModal();renderEncounter()}
+async function encSearch(){try{const q=encQuery.value.toLowerCase(),d=await jget('/api/2014/monsters');encChoices.innerHTML=d.results.filter(x=>x.name.toLowerCase().includes(q)).slice(0,30).map(x=>`<option value="${x.url}">${esc(x.name)}</option>`).join('')}catch{encChoices.innerHTML='';}}
+async function encAdd(){const u=encChoices.value;if(!u)return;try{const m=await jget(u),q=+encQty.value||1;encounter.push({m,q});renderEncounter()}catch{}}
+function renderEncounter(){const heroes=players.filter(p=>!p.isMonster).length||1;let xp=0;encList.innerHTML=encounter.map((e,i)=>`<div>${e.q}× ${esc(e.m.name)} (${e.m.xp||0} XP each) <button onclick="encRemove(${i})">×</button></div>`).join('');encounter.forEach(e=>xp+=e.q*(e.m.xp||0));const thresh={easy:25,medium:50,hard:75,deadly:100};let diff='Trivial';for(const [k,v] of Object.entries(thresh)){if(xp>=v*heroes)diff=k[0].toUpperCase()+k.slice(1);}encInfo.textContent=`Total XP: ${xp.toLocaleString()} · Adjusted XP: ${(xp*(encounter.reduce((a,b)=>a+b.q,0)>=15?4:encounter.reduce((a,b)=>a+b.q,0)>=7?2.5:encounter.reduce((a,b)=>a+b.q,0)>=3?1.5:1)).toLocaleString()} · Estimated difficulty: ${diff}`;encSaved.innerHTML=Object.keys(savedEncounters).map(n=>`<option>${esc(n)}</option>`).join('')}
+function encRemove(i){encounter.splice(i,1);renderEncounter()}
+function saveEncounter(){const n=encSaveName.value.trim();if(!n)return;const data=encounter.map(e=>({name:e.m.name,url:e.m.url,q:e.q}));savedEncounters[n]=data;localStorage.setItem('dm_encounters',JSON.stringify(savedEncounters));renderEncounter()}
+async function loadEncounter(){if(!encounter.length)return;const names={};const heroes=players.filter(p=>!p.isMonster).length||1;for(const e of encounter){const m=e.m;for(let i=1;i<=e.q;i++){const name=m.name+(e.q>1?' '+i:'');if(names[name])continue;names[name]=true;const hp=m.hit_points_roll?parseRoll(m.hit_points_roll)||m.hit_points:m.hit_points;players.push({name,cls:'Monster CR '+m.challenge_rating,lvl:1,ac:m.armor_class[0]?.value||10,hp,max:hp,spd:30,init:Math.floor((m.dexterity-10)/2),pp:10,STR:m.strength,DEX:m.dexterity,CON:m.constitution,INT:m.intelligence,WIS:m.wisdom,CHA:m.charisma,cond:'',notes:m.hit_points_roll||'',temp:0,ds:0,df:0,resources:'',conc:false,conditions:[],isMonster:true,monsterData:m})}}save();render();document.getElementById('encounterDialog').close()}
+function deleteEncounter(){const n=encSaved.value;if(!n||!savedEncounters[n])return;delete savedEncounters[n];localStorage.setItem('dm_encounters',JSON.stringify(savedEncounters));renderEncounter()}
+
+// ---- Group 6: quick ref ----
+function openRefDialog(){document.getElementById('refDialog').showModal()}
+
+// ---- Group 7: share link ----
+function openShareDialog(){const payload=btoa(encodeURIComponent(JSON.stringify({players,cur,round,hist,sessionNotes:sessionNotesEl.value,lootNotes:lootNotesEl.value})));const url=location.origin+location.pathname+'#s='+payload;shareUrl.value=url;document.getElementById('shareDialog').showModal()}
+function copyShareUrl(){shareUrl.select();document.execCommand('copy')}
+function loadShareUrl(){const h=location.hash;if(!h.startsWith('#s='))return;try{const data=JSON.parse(decodeURIComponent(atob(h.slice(3))));if(confirm('Load shared session? This replaces current state.')){players=data.players||[];cur=data.cur||0;round=data.round||1;hist=data.hist||[];sessionNotes=data.sessionNotes||'';lootNotes=data.lootNotes||'';saveAll();render();renderHist()}}catch{}}
+
+// ---- Group 8: player view ----
+function openPublicView(){publicViewDialog.showModal();renderPublicView()}
+function renderPublicView(){publicView.innerHTML='<h3>Round '+round+'</h3>'+players.map((p,i)=>`<div style="padding:6px;border-bottom:1px solid var(--line);${i==cur?'background:#2e2812;font-weight:bold':''}">${i+1}. ${esc(p.name)}${p.isMonster?'':' — HP '+p.hp+'/'+p.max}</div>`).join('')}
+
+// ---- Group 9: hidden DM roll ----
+function rollHidden(){const sides=+prompt('Hidden die sides (e.g. 20):','20')||20;const bonus=+prompt('Modifier:','0')||0;const d=rnd(sides);alert('Hidden roll: '+d+(bonus?(bonus>0?' + ':' ')+bonus:'')+' = '+(d+bonus));}
+
+function addPlayer(){snapshot();players.push({name:'New Hero',cls:'',lvl:1,ac:10,hp:10,max:10,spd:30,init:0,pp:10,STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10,cond:'',notes:'',temp:0,ds:0,df:0,resources:'',conc:false,conditions:[]});save();render()}
 function set(i,k,v,num){players[i][k]=num?(+v||0):v;save();if(num)render();else if(k==='name'){const o=document.getElementById('pcSel').options[i];if(o)o.textContent=v}}
 function hp(i,d){snapshot();const p=players[i];if(d<0){let dmg=-d,used=Math.min(p.temp||0,dmg);p.temp=(p.temp||0)-used;d+=used}p.hp=Math.max(0,Math.min(p.max,p.hp+d));if(p.hp>0){p.ds=0;p.df=0}save();render()}
 function deathSave(i,k,d){snapshot();players[i][k]=Math.max(0,Math.min(3,(players[i][k]||0)+d));save();render()}
 function hpAmt(i,sign){const v=parseInt(prompt(sign>0?'Heal how much?':'Damage how much?','1'));if(v)hp(i,sign*v)}
 function render(){
  const t=document.getElementById('sheet');document.getElementById('roundLabel').textContent='Round '+round;document.getElementById('campaignLabel').textContent='· '+activeCampaign;
- let h='<tr><th>#</th><th>Name</th><th>Class</th><th>Lvl</th><th>AC</th><th>HP</th><th>Spd</th><th>Init</th><th>PP</th>'+ABIL.map(a=>`<th>${a}</th>`).join('')+'<th>Temp HP</th><th class="optional">Death Saves</th><th>Conditions</th><th>Resources</th><th>Notes</th><th></th></tr>';
+ let h='<tr><th>#</th><th>Name</th><th>Class</th><th>Lvl</th><th>AC</th><th>HP</th><th>Spd</th><th>Init</th><th>PP</th>'+ABIL.map(a=>`<th>${a}</th>`).join('')+'<th>Temp HP</th><th class="optional">Death Saves</th><th class="feat f-conc">Conc</th><th>Conditions</th><th class="feat f-conc">Timer</th><th>Resources</th><th>Notes</th><th></th></tr>';
  clampCur();loadPlayerDice();const ps=document.getElementById('pcSel');ps.textContent='';
  if(!players.length){const o=document.createElement('option');o.value=-1;o.textContent='—';ps.appendChild(o)}
  players.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.selected=i==cur;o.textContent=p.name;ps.appendChild(o)});
@@ -145,14 +263,14 @@ function render(){
   const n=(k,c='n')=>`<td><input class="${c}" type="number" value="${p[k]}" onchange="set(${i},'${k}',this.value,1)"></td>`;
   h+=`<tr class="${i==cur?(p.isMonster?'cur monster':'cur'):''}" onclick="rowClick(event,${i})"><td class="pos"><button class="mv" title="Move up" onclick="event.stopPropagation();mv(${i},-1)">▲</button>${i+1}<button class="mv" title="Move down" onclick="event.stopPropagation();mv(${i},1)">▼</button>${p.ir!=null?'<small>🎲 '+(p.irRoll??p.ir)+' + Init '+(p.init||0)+' = '+p.ir+'</small>':''}</td><td><input class="name" value="${p.name.replace(/"/g,'&quot;')}" onchange="set(${i},'name',this.value)"></td>
   <td><input class="w" style="width:90px" value="${p.cls}" onchange="set(${i},'cls',this.value)"></td>${n('lvl')}${n('ac')}
-  <td><div class="hp"><button onclick="hpAmt(${i},-1)">−</button><b>${p.hp}</b>/<input class="n" style="width:44px" type="number" value="${p.max}" onchange="set(${i},'max',this.value,1)"><button onclick="hpAmt(${i},1)">+</button></div><div class="hpbar"><i style="width:${pct}%;background:${col}"></i></div></td>
+  <td><div class="hp"><button onclick="quickDamage(${i},-1)">−1</button><button onclick="hpAmt(${i},-1)">−</button><b>${p.hp}</b>/<input class="n" style="width:44px" type="number" value="${p.max}" onchange="set(${i},'max',this.value,1)"><button onclick="hpAmt(${i},1)">+</button><button onclick="quickDamage(${i},1)">+1</button></div>${p.isBloodied?'<div class="bloodied">Bloodied</div>':''}<div class="hpbar"><i style="width:${pct}%;background:${col}"></i></div></td>
   ${n('spd')}${n('init')}${n('pp')}
   ${ABIL.map(a=>`<td><input class="n" style="width:46px" type="number" value="${p[a]}" onchange="set(${i},'${a}',this.value,1)"><span class="mod">${mod(p[a])}</span></td>`).join('')}
   <td><input class="n" type="number" value="${p.temp||0}" onchange="set(${i},'temp',this.value,1)" title="Temporary HP"></td><td class="optional">${p.ds||0}✓ <button onclick="deathSave(${i},'ds',-1)">−</button><button onclick="deathSave(${i},'ds',1)">+</button> ${p.df||0}✗ <button onclick="deathSave(${i},'df',-1)">−</button><button onclick="deathSave(${i},'df',1)">+</button></td>
-  <td><textarea class="tx" rows="2" placeholder="Conditions…" onclick="event.stopPropagation()" oninput="grow(this)" onchange="set(${i},'cond',this.value)">${esc(p.cond)}</textarea></td>
+  <td class="feat f-conc"><label><input type="checkbox" ${p.conc?"checked":""} onchange="toggleConc(${i})"> Conc</label></td><td><div class="chips">${(p.conditions||[]).map((c,j)=>`<span class="chip" title="${esc(c.name)}${c.rounds?' — '+c.rounds+' rounds':''}" onclick="editCondition(${i},${j})">${esc(c.name)}${c.rounds?' '+c.rounds:''}<b onclick="event.stopPropagation();removeCondition(${i},${j})">×</b></span>`).join(' ')}</div><textarea class="tx" rows="2" placeholder="Conditions…" onclick="event.stopPropagation()" oninput="grow(this)" onchange="setCondText(${i},this.value)">${esc(p.cond)}</textarea></td><td class="feat f-conc"><input class="n" placeholder="Rounds" title="Type condition name:rounds or just rounds" onchange="addTimedConditionPrompt(${i},this.value)"></td>
   <td><input class="w" value="${esc(p.resources||'')}" placeholder="Slots / resources" onchange="set(${i},'resources',this.value)"></td><td><textarea class="tx" rows="2" placeholder="Notes…" onclick="event.stopPropagation()" oninput="grow(this)" onchange="set(${i},'notes',this.value)">${esc(p.notes)}</textarea></td>
   <td><button onclick="event.stopPropagation();if(confirm('Remove ${p.name.replace(/'/g,'')}?')){snapshot();players.splice(${i},1);save();render()}">🗑 Delete</button></td></tr>`});
- if(!players.length)h+='<tr><td colspan="21" style="padding:20px;color:#a89a82">No players yet. Click “+ Add Player”.</td></tr>';
+ if(!players.length)h+='<tr><td colspan="23" style="padding:20px;color:#a89a82">No players yet. Click “+ Add Player”.</td></tr>';
  t.innerHTML=h;t.querySelectorAll('textarea.tx').forEach(grow)}
 function grow(e){e.style.height='auto';e.style.height=Math.max(44,e.scrollHeight+2)+'px'}
 function exportData(filename='party.json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(players,null,2)],{type:'application/json'}));a.download=filename;a.click()}
@@ -180,9 +298,10 @@ function rememberDice(m){const p=players[cur];if(p){p.dice={types:[...types],mod
 let hist=JSON.parse(localStorage.getItem('dm_hist')||'[]');
 function renderHist(){document.getElementById('hist').innerHTML=hist.map(x=>`<div>${esc(x)}</div>`).join('')}
 function saveAll(){
- localStorage.setItem('dm_players',JSON.stringify(players));localStorage.setItem('dm_cur',cur);localStorage.setItem('dm_round',round);campaigns[activeCampaign]={players,cur,round,hist,sessionNotes:sessionNotesEl.value,lootNotes:lootNotesEl.value};localStorage.setItem('dm_campaigns',JSON.stringify(campaigns));
+ localStorage.setItem('dm_players',JSON.stringify(players));localStorage.setItem('dm_cur',cur);localStorage.setItem('dm_round',round);
+ campaigns[activeCampaign]={players,cur,round,hist,sessionNotes:sessionNotesEl.value,lootNotes:lootNotesEl.value};localStorage.setItem('dm_campaigns',JSON.stringify(campaigns));
  localStorage.setItem('dm_hist',JSON.stringify(hist));localStorage.setItem('dm_notes',sessionNotesEl.value);localStorage.setItem('dm_loot',lootNotesEl.value);
- localStorage.setItem('dm_dice',JSON.stringify({types,mod:document.getElementById('modv').value}))}
+ localStorage.setItem('dm_dice',JSON.stringify({types,mod:document.getElementById('modv').value}));}
 function logLine(t){hist.unshift(new Date().toLocaleTimeString()+' — '+t);hist.length=Math.min(hist.length,50);renderHist();saveAll()}
 function resetApp(){
  if(!confirm('⚠ RESET THE APP?\n\nThis permanently deletes ALL players, stats, initiative, rounds, campaigns, presets, roll history, resources and dice settings, and returns the app to its blank starting state.\n\nThis cannot be undone (use Export first if you want a backup).'))return;
@@ -205,7 +324,7 @@ function rollInitiative(){
  cur=0;
  logLine('🎲 Player order: '+players.map((p,i)=>`${i+1}. ${p.name} (${p.irRoll} + Init ${p.init||0} = ${p.ir})`).join(', ')+(rounds?` — ${rounds} tie-break round${rounds>1?'s':''}`:''));
  render()}
-function nextTurn(){if(!players.length)return;snapshot();const prev=players[cur].name;cur=(cur+1)%players.length;if(cur===0){round++;roundLabel.textContent='Round '+round}render();logLine(`⏭ ${prev} ended turn → ${players[cur].name}'s turn`)}
+function nextTurn(){if(!players.length)return;snapshot();const prev=players[cur].name;cur=(cur+1)%players.length;if(cur===0){round++;roundLabel.textContent='Round '+round;if(decrementConditionTimers())save()}render();logLine(`⏭ ${prev} ended turn → ${players[cur].name}'s turn`)}
 
 // ---- Dice ----
 const rnd=n=>{const a=new Uint32Array(1),lim=Math.floor(4294967296/n)*n;do crypto.getRandomValues(a);while(a[0]>=lim);return a[0]%n+1};
@@ -316,5 +435,5 @@ async function gshow(u,el){
 {const d=JSON.parse(localStorage.getItem('dm_dice')||'null');
  if(d&&Array.isArray(d.types)&&d.types.length&&d.types.every(t=>t in DICE)){types=d.types;document.getElementById('count').value=types.length;document.getElementById('modv').value=d.mod||0}}
 document.getElementById('modv').onchange=saveAll;
-{const p=JSON.parse(localStorage.getItem('dm_prefs')||'{}');if(p.light)document.body.classList.add('light');if(p.large)document.body.classList.add('largeText');soundPref.checked=!!p.sound;autoBackup.checked=!!p.auto}if(compact)document.body.classList.add('compact');roundLabel.textContent='Round '+round;campaignLabel.textContent='· '+activeCampaign;sessionNotesEl.value=sessionNotes;lootNotesEl.value=lootNotes;buildSlots();render();renderHist();saveAll();setInterval(()=>{if(autoBackup.checked)exportData('dm-toolkit-autobackup.json')},600000);
+{const p=JSON.parse(localStorage.getItem('dm_prefs')||'{}');if(p.light)document.body.classList.add('light');if(p.large)document.body.classList.add('largeText');soundPref.checked=!!p.sound;autoBackup.checked=!!p.auto}if(compact)document.body.classList.add('compact');roundLabel.textContent='Round '+round;campaignLabel.textContent='· '+activeCampaign;applyFeatures();loadShareUrl();sessionNotesEl.value=sessionNotes;lootNotesEl.value=lootNotes;buildSlots();render();renderHist();saveAll();setInterval(()=>{if(autoBackup.checked)exportData('dm-toolkit-autobackup.json')},600000);
 </script></body></html>

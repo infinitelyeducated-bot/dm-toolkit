@@ -190,6 +190,8 @@ function saveFeatures(){
   Object.keys(FEATURES).forEach(k=>{const cb=document.getElementById('feat-'+k);featureState[k]=cb?cb.checked:false;});
   localStorage.setItem('dm_features',JSON.stringify(featureState));applyFeatures();
 }
+function resetFeatures(){featureState={};localStorage.setItem('dm_features','{}');applyFeatures();}
+function saveDisplayPrefs(){document.body.classList.toggle('compact',cfgCompact.checked);localStorage.setItem('dm_compact',cfgCompact.checked?'1':'0');document.body.classList.toggle('light',cfgLight.checked);document.body.classList.toggle('largeText',cfgLarge.checked);soundPref.checked=cfgSound.checked;autoBackup.checked=cfgAuto.checked;savePrefs()}
 function featureDialog(){document.getElementById('featureDialog').showModal()}
 
 // ---- Group 1: monsters quick HP, bloodied, concentration, condition timers, duplicate ----
@@ -377,8 +379,8 @@ const pname=()=>players[cur]?players[cur].name:'';
 const API='https://www.dnd5eapi.co';
 const CATS={monsters:'Monsters',spells:'Spells',classes:'Classes',races:'Races',backgrounds:'Backgrounds',feats:'Feats',conditions:'Conditions',rules:'Rules',equipment:'Equipment','magic-items':'Magic Items',skills:'Skills',languages:'Languages',traits:'Racial Traits',features:'Class Features'};
 let curCat='monsters',glistData=[],cache={};
-function tab(n){document.getElementById('main').style.display=n==1?'':'none';document.getElementById('guide').style.display=n==2?'block':'none';
- t1.classList.toggle('on',n==1);t2.classList.toggle('on',n==2);if(n==2&&!glistData.length)loadCat(curCat)}
+function tab(n){document.getElementById('main').style.display=n==1?'':'none';document.getElementById('config').style.display=n==2?'block':'none';document.getElementById('guide').style.display=n==3?'block':'none';
+ t1.classList.toggle('on',n==1);t2.classList.toggle('on',n==2);t3.classList.toggle('on',n==3);if(n==3&&!glistData.length)loadCat(curCat)}
 cats.innerHTML=Object.entries(CATS).map(([k,v])=>`<button class="cat" data-k="${k}" onclick="curCat='${k}';loadCat('${k}')">${v}</button>`).join('');
 gcr.innerHTML='<option value="">All CR</option>'+['0','0.125','0.25','0.5',...Array.from({length:30},(_,i)=>i+1)].map(c=>`<option value="${c}">CR ${{0.125:'1/8',0.25:'1/4',0.5:'1/2'}[c]||c}</option>`).join('');
 async function jget(u){if(cache[u])return cache[u];const r=await fetch(API+u);if(!r.ok)throw 0;return cache[u]=await r.json()}
@@ -435,5 +437,7 @@ async function gshow(u,el){
 {const d=JSON.parse(localStorage.getItem('dm_dice')||'null');
  if(d&&Array.isArray(d.types)&&d.types.length&&d.types.every(t=>t in DICE)){types=d.types;document.getElementById('count').value=types.length;document.getElementById('modv').value=d.mod||0}}
 document.getElementById('modv').onchange=saveAll;
-{const p=JSON.parse(localStorage.getItem('dm_prefs')||'{}');if(p.light)document.body.classList.add('light');if(p.large)document.body.classList.add('largeText');soundPref.checked=!!p.sound;autoBackup.checked=!!p.auto}if(compact)document.body.classList.add('compact');roundLabel.textContent='Round '+round;campaignLabel.textContent='· '+activeCampaign;applyFeatures();loadShareUrl();sessionNotesEl.value=sessionNotes;lootNotesEl.value=lootNotes;buildSlots();render();renderHist();saveAll();setInterval(()=>{if(autoBackup.checked)exportData('dm-toolkit-autobackup.json')},600000);
+{const p=JSON.parse(localStorage.getItem('dm_prefs')||'{}');if(p.light)document.body.classList.add('light');if(p.large)document.body.classList.add('largeText');soundPref.checked=!!p.sound;autoBackup.checked=!!p.auto}if(compact)document.body.classList.add('compact');roundLabel.textContent='Round '+round;campaignLabel.textContent='· '+activeCampaign;applyFeatures();loadShareUrl();
+{const p=JSON.parse(localStorage.getItem('dm_prefs')||'{}');cfgCompact.checked=!!document.body.classList.contains('compact');cfgLight.checked=!!document.body.classList.contains('light');cfgLarge.checked=!!document.body.classList.contains('largeText');cfgSound.checked=!!p.sound;cfgAuto.checked=!!p.auto}
+sessionNotesEl.value=sessionNotes;lootNotesEl.value=lootNotes;buildSlots();render();renderHist();saveAll();setInterval(()=>{if(autoBackup.checked)exportData('dm-toolkit-autobackup.json')},600000);
 </script></body></html>
